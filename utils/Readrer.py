@@ -7,7 +7,7 @@ def read_file(path):
     global reader
     table = []
     row_num = 0
-    with open(path, "r") as file:
+    with open(path, "r", encoding='UTF-8') as file:
         reader = csv.reader(file)
         for row in reader:
             table.append(row)
