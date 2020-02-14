@@ -99,4 +99,4 @@ def sort(data):
     return data_index, data_sort
 
 
-linear_regression(5, 1.9)
+linear_regression(11, 1.9)

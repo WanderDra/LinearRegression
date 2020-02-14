@@ -124,12 +124,12 @@ def analysis():
     tree, final_output, possibility = train(predict_discriminant, train_data, discriminant)
     print(final_output)
 
-    depth = len(predict_discriminant) + 1
+    depth = len(predict_discriminant) + 2
     def draw(depth):
         plt.figure()
         p = []
         d = 0
-        for i in range(0, len(tree)):
+        for i in range(0, len(tree) + len(final_output)):
             if i > (2 ** (d + 1)) - 2:
                 d += 1
             y = 20.0 * (depth - d)
@@ -143,7 +143,7 @@ def analysis():
         print(p)
         for point in p:
             plt.plot(point[0], point[1], 'b.')
-        for i in range(0, len(tree) - 2 ** (depth - 2)):
+        for i in range(0, (len(tree) + len(final_output)) - 2 ** (depth - 2)):
             # print(p[i][0])
             x1 = [p[i][0], p[2 * i + 1][0]]
             y1 = [p[i][1], p[2 * i + 1][1]]
@@ -153,15 +153,25 @@ def analysis():
             plt.plot(x2, y2, 'b-')
 
         d = 0
+        plt.text(p[0][0], p[0][1], str(title[4 + d]) + '>' + str(tree[0]) + '?')
         for i in range(0, len(tree)):
             if i > (2 ** (d + 1)) - 2:
                 d += 1
-            plt.text(p[i][0], p[i][1], str(title[4 + d]) + '>' + str(tree[i]) + '?')
+                plt.text(p[i][0], p[i][1], str(title[4 + d]) + '>' + str(tree[i]) + '?')
+
+        for i in range(0, 2 ** (depth - 2)):
+            y = 35.0
+            x = 10 + 20 * i
+            if final_output[i] == 'True':
+                plt.text(x, y, 'T')
+            else:
+                plt.text(x, y, 'F')
+            y = 30.0
+            plt.text(x, y, str(possibility[i]))
+
         plt.show()
 
     draw(depth)
-
-
 
 
     # Put data in tree
