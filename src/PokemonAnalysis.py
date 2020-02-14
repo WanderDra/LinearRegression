@@ -1,13 +1,22 @@
 import numpy as np
 from Readrer import read_file
 import math
+import os
+from matplotlib import pyplot as plt
 
 
 def analysis():
-    # table, row_num = read_file('D:\\PyProject\\LinearRegression\\LinearRegression\\data\\Pokemon.csv')
-    table, row_num = read_file('C:\\Main\\GitHub\\Code\\LinearRegression\\data\\Pokemon.csv')
+    paths = os.path.abspath(os.path.dirname(__file__)).split('shippingSchedule')[0].split('\\')[:-1]
+    project_dir = paths[0]
+    paths.pop(0)
+    for path in paths:
+        project_dir += os.sep + path
+    table, row_num = read_file(
+        os.path.join(project_dir, 'data', 'Pokemon.csv'))
 
-    table.pop(0)
+
+    # Decide discriminant by gradient descend
+    title = table.pop(0)
     original_data = np.array(table)
     analyze_data = original_data[:, 4:12].astype(float)
     discriminant = original_data[:, -1]
@@ -34,6 +43,7 @@ def analysis():
         false_in_right_rate.append(firr)
         # break
 
+    # Get IG(Y) and build the tree
     ig_list = []
     for col in range(0, data_size):
         x1_y1 = correct_rate[col] * 0.5
@@ -59,57 +69,130 @@ def analysis():
         print('hit_rate = ', hit_rate[i])
         print('ig(y) = ', ig_list[i])
 
-    def tree(discriminants, train_data):
+    # Train the tree
+    def train(discriminants, train_data, dis_list):
         depth = len(discriminants)
         tree = []
         count = 0
         for d in range(0, depth):
             for n in range(0, 2 ** d):
                 tree.append(discriminants[sort_index[d]])
-        # final_decision = []
-        # rate_list = [1]
-        # for d in range(1, depth + 1):
-        #     for n in range(0, 2 ** depth, 2):
-        #         if d == 1:
-        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4 - 1)] * right_in_right_rate[sort_index[d - 1]])
-        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4 - 1)] * false_in_right_rate[sort_index[d - 1]])
-        #         else:
-        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4)] * correct_rate[sort_index[d - 1]])
-        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4)] * right_in_false_rate[sort_index[d - 1]])
-        # # print(rate_list[2 ** depth - 1:])
-        # temp_rate = rate_list[2 ** depth - 1:]
-        # print(temp_rate)
-        # for i in range(0, len(temp_rate), 2):
-        #     if temp_rate[i] >= temp_rate[i + 1]:
-        #         final_decision.append('True')
-        #     else:
-        #         final_decision.append('False')
-        #
-        # print(final_decision)
+        print(tree)
 
-        final_decision = [0, 0] * len(tree[2 ** (depth - 1) - 1:])
+        final_decision = [0, 0, 0, 0] * len(tree[2 ** (depth - 1) - 1:])
+        counter = 0
         for line in train_data:
             position = 0
-            depth = 0
+            depth = 1
             for i in sort_index:
-                if line[i] > tree[position]:
-                    position += 2 ** depth - 1
-                    print(position, '===============')
-                if line[i] < tree[position]:
-                    position += 2 ** depth
+                # print('line: ', i, ' ', line[i])
+                # print('tree: ', position, ' ', tree[position])
+                if line[i] >= tree[position]:
+                    position = 2 * position + 1
+                elif line[i] < tree[position]:
+                    position = 2 * position + 2
+                # print('==================')
                 depth += 1
-                print(depth)
-            final_position = position - 2 ** (depth - 1)
-            final_decision[final_position] += 1
+            final_position = position - 2 ** (depth - 1) - 1
+            if dis_list[counter] == 'True':
+                final_decision[final_position * 2] += 1
+            else:
+                final_decision[final_position * 2 + 1] += 1
+            counter += 1
 
         print(final_decision)
-        # print(tree[2 ** (depth - 1) - 1:], '==============')
+        final_output = []
+        possibility = []
+        for i in range(0, len(final_decision), 2):
+            if final_decision[i] >= final_decision[i + 1]:
+                final_output.append('True')
+                if final_decision[i] == 0 and final_decision[i + 1] == 0:
+                    possibility.append(None)
+                else:
+                    possibility.append(final_decision[i]/(final_decision[i] + final_decision[i + 1]))
+            else:
+                final_output.append('False')
+                if final_decision[i] == 0 and final_decision[i + 1] == 0:
+                    possibility.append(None)
+                else:
+                    possibility.append(final_decision[i + 1] / (final_decision[i] + final_decision[i + 1]))
 
-        print(tree)
-        return tree
+        return tree, final_output, possibility
+
+    # Train the tree
+    train_data = analyze_data[0:650]
+    tree, final_output, possibility = train(predict_discriminant, train_data, discriminant)
+    print(final_output)
+
+    depth = len(predict_discriminant) + 1
+    def draw(depth):
+        plt.figure()
+        p = []
+        d = 0
+        for i in range(0, len(tree)):
+            if i > (2 ** (d + 1)) - 2:
+                d += 1
+            y = 20.0 * (depth - d)
+            pre_x = 0
+            for h in range(d + 1, depth):
+                pre_x = pre_x + 5 * (2 ** (depth - h - 1))
+            x = 10.0 + pre_x + (i - (2 ** d) + 1) * (10 * (2 ** (depth - d - 1)))
+            # print(x)
+            p.append([x, y])
+
+        print(p)
+        for point in p:
+            plt.plot(point[0], point[1], 'b.')
+        for i in range(0, len(tree) - 2 ** (depth - 2)):
+            # print(p[i][0])
+            x1 = [p[i][0], p[2 * i + 1][0]]
+            y1 = [p[i][1], p[2 * i + 1][1]]
+            x2 = [p[i][0], p[2 * i + 2][0]]
+            y2 = [p[i][1], p[2 * i + 2][1]]
+            plt.plot(x1, y1, 'b-')
+            plt.plot(x2, y2, 'b-')
+
+        d = 0
+        for i in range(0, len(tree)):
+            if i > (2 ** (d + 1)) - 2:
+                d += 1
+            plt.text(p[i][0], p[i][1], str(title[4 + d]) + '>' + str(tree[i]) + '?')
+        plt.show()
+
+    draw(depth)
 
 
-    tree(predict_discriminant, analyze_data)
+
+
+    # Put data in tree
+    right = 0
+    count = 0
+    for i in range(651, len(analyze_data)):
+        line = analyze_data[i]
+
+        position = 0
+        depth = 1
+        for i in sort_index:
+            # print('line: ', i, ' ', line[i])
+            # print('tree: ', position, ' ', tree[position])
+            if line[i] >= tree[position]:
+                position = 2 * position + 1
+            elif line[i] < tree[position]:
+                position = 2 * position + 2
+            # print('==================')
+            depth += 1
+        final_position = position - 2 ** (depth - 1) - 1
+        print('----------------------------------------------')
+        print(final_output[final_position], ' ', possibility[final_position])
+        print('act = ', discriminant[i])
+        print('----------------------------------------------')
+        if final_output[final_position] == discriminant[i]:
+            right += 1
+
+        count += 1
+
+    accuracy = right / count
+    print('accuracy = ', accuracy)
 
 
 
@@ -157,8 +240,7 @@ def gradient_descend(max_loop, ori_data, learning_rate):  # data[0] = data    da
                 right_in_right += 1
                 total_right += 1
             if predict[i] == 'True' and discriminant[i] == 'False':
-                # pass
-                goal += 0.7
+                goal += 0.7             # 0.7 has the best performance via trying
                 wrong += 1
                 right_in_false += 1
                 total_false += 1

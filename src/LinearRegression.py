@@ -2,13 +2,20 @@ from Readrer import read_file
 from matplotlib import pyplot as plt
 import numpy as np
 import copy
-
+import os
 from LR_core import lr_cal
 
 
 
 def linear_regression(target_col, learning_rate):
-    table, row_num = read_file('D:\\PyProject\\LinearRegression\\LinearRegression\\data\\baseball-9192.csv')
+    paths = os.path.abspath(os.path.dirname(__file__)).split('shippingSchedule')[0].split('\\')[:-1]
+    project_dir = paths[0]
+    paths.pop(0)
+    for path in paths:
+        project_dir += os.sep + path
+    table, row_num = read_file(
+        os.path.join(project_dir, 'data', 'baseball-9192.csv'))
+
     table.pop(0)
     data = np.array(table)
 
