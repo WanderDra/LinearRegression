@@ -4,7 +4,9 @@ import math
 
 
 def analysis():
-    table, row_num = read_file('D:\\PyProject\\LinearRegression\\LinearRegression\\data\\Pokemon.csv')
+    # table, row_num = read_file('D:\\PyProject\\LinearRegression\\LinearRegression\\data\\Pokemon.csv')
+    table, row_num = read_file('C:\\Main\\GitHub\\Code\\LinearRegression\\data\\Pokemon.csv')
+
     table.pop(0)
     original_data = np.array(table)
     analyze_data = original_data[:, 4:12].astype(float)
@@ -14,16 +16,22 @@ def analysis():
     correct_rate = []
     hit_rate = []
     right_in_false_rate = []
+    false_in_false_rate = []
+    right_in_right_rate = []
+    false_in_right_rate = []
     for col in range(0, data_size):
         data = analyze_data[:, col]
         prepared_data = np.vstack([data, discriminant])
         print(prepared_data)
-        t, m, r, h, rifr = gradient_descend(1000, prepared_data, 0.01)
+        t, m, r, h, rifr, fifr, rirr, firr = gradient_descend(1000, prepared_data, 0.01)
         predict = int(t * m)
         predict_discriminant.append(predict)
         correct_rate.append(r)
         hit_rate.append(h)
         right_in_false_rate.append(rifr)
+        false_in_false_rate.append(fifr)
+        right_in_right_rate.append(rirr)
+        false_in_right_rate.append(firr)
         # break
 
     ig_list = []
@@ -51,37 +59,57 @@ def analysis():
         print('hit_rate = ', hit_rate[i])
         print('ig(y) = ', ig_list[i])
 
-    def tree(discriminants):
+    def tree(discriminants, train_data):
         depth = len(discriminants)
         tree = []
         count = 0
         for d in range(0, depth):
-            for n in range(0, 2 ** depth):
+            for n in range(0, 2 ** d):
                 tree.append(discriminants[sort_index[d]])
-        final_decision = []
-        rate_list = [1]
-        for d in range(1, depth + 1):
-            for n in range(0, 2 ** depth, 2):
-                if d == 1:
-                    rate_list.append(rate_list[int(2 ** (d - 1) + n / 2 - 1)] * correct_rate[sort_index[d - 1]])
-                    rate_list.append(rate_list[int(2 ** (d - 1) + n / 2 - 1)] * right_in_false_rate[sort_index[d - 1]])
-                else:
-                    rate_list.append(rate_list[int(2 ** (d - 1) + n / 2)] * correct_rate[sort_index[d - 1]])
-                    rate_list.append(rate_list[int(2 ** (d - 1) + n / 2)] * right_in_false_rate[sort_index[d - 1]])
-                2 ** depth - 1 + n
-        # print(rate_list[2 ** depth - 1:])
-        temp_rate = rate_list[2 ** depth - 1:]
-        print(temp_rate)
-        for i in range(0, len(temp_rate), 2):
-            if temp_rate[i] >= temp_rate[i + 1]:
-                final_decision.append('True')
-            else:
-                final_decision.append('False')
+        # final_decision = []
+        # rate_list = [1]
+        # for d in range(1, depth + 1):
+        #     for n in range(0, 2 ** depth, 2):
+        #         if d == 1:
+        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4 - 1)] * right_in_right_rate[sort_index[d - 1]])
+        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4 - 1)] * false_in_right_rate[sort_index[d - 1]])
+        #         else:
+        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4)] * correct_rate[sort_index[d - 1]])
+        #             rate_list.append(rate_list[int(4 ** (d - 1) + n / 4)] * right_in_false_rate[sort_index[d - 1]])
+        # # print(rate_list[2 ** depth - 1:])
+        # temp_rate = rate_list[2 ** depth - 1:]
+        # print(temp_rate)
+        # for i in range(0, len(temp_rate), 2):
+        #     if temp_rate[i] >= temp_rate[i + 1]:
+        #         final_decision.append('True')
+        #     else:
+        #         final_decision.append('False')
+        #
+        # print(final_decision)
+
+        final_decision = [0, 0] * len(tree[2 ** (depth - 1) - 1:])
+        for line in train_data:
+            position = 0
+            depth = 0
+            for i in sort_index:
+                if line[i] > tree[position]:
+                    position += 2 ** depth - 1
+                    print(position, '===============')
+                if line[i] < tree[position]:
+                    position += 2 ** depth
+                depth += 1
+                print(depth)
+            final_position = position - 2 ** (depth - 1)
+            final_decision[final_position] += 1
 
         print(final_decision)
+        # print(tree[2 ** (depth - 1) - 1:], '==============')
+
+        print(tree)
         return tree
 
-    tree(predict_discriminant)
+
+    tree(predict_discriminant, analyze_data)
 
 
 
@@ -116,18 +144,30 @@ def gradient_descend(max_loop, ori_data, learning_rate):  # data[0] = data    da
         goal = 0
         right = 0
         wrong = 0
+        false_in_false = 0
+        false_in_right = 0
+        right_in_false = 0
+        right_in_right = 0
+        total_false = 0
+        total_right = 0
         for i in range(0, len(discriminant)):
             if predict[i] == 'True' and discriminant[i] == 'True':
                 goal += 1
                 right += 1
+                right_in_right += 1
+                total_right += 1
             if predict[i] == 'True' and discriminant[i] == 'False':
                 # pass
                 goal += 0.7
                 wrong += 1
-            # if predict[i] == 'False' and discriminant[i] == 'False':
-            #     goal += false_rate
-            # if predict[i] == 'False' and discriminant[i] == 'True':
-            #     goal -= 1
+                right_in_false += 1
+                total_false += 1
+            if predict[i] == 'False' and discriminant[i] == 'False':
+                false_in_false += 1
+                total_false += 1
+            if predict[i] == 'False' and discriminant[i] == 'True':
+                false_in_right += 1
+                total_right += 1
 
         if goal >= 0:
             loss = (goal - target_goal) / len(scaled_data)
@@ -138,9 +178,12 @@ def gradient_descend(max_loop, ori_data, learning_rate):  # data[0] = data    da
         # break
     correct_rate = right / (right + wrong)
     hit_rate = right / target_goal
-    right_in_false_rate = (target_goal - right) / (len(scaled_data) - right - wrong)
+    right_in_false_rate = right_in_false / total_false
+    false_in_false_rate = false_in_false / total_false
+    right_in_right_rate = right_in_right / total_right
+    false_in_right_rate = false_in_right / total_right
 
-    return theta, max_data, correct_rate, hit_rate, right_in_false_rate
+    return theta, max_data, correct_rate, hit_rate, right_in_false_rate, false_in_false_rate, right_in_right_rate, false_in_right_rate
 
 
 
